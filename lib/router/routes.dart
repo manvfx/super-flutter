@@ -15,26 +15,11 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: '/home',
       builder: (context, state) => MainWrapper(),
-      // redirect: (context, state) {
-      //   const isUserLoggedIn = true;
-      //   if (!isUserLoggedIn) {
-      //     return '/login';
-      //   }
-      //   return '/';
-      // },
     ),
     GoRoute(
       path: '/login',
       name: 'login',
       builder: (context, state) => LoginScreen(),
-    ),
-    GoRoute(
-      path: '/search',
-      builder: (context, state) => MainWrapper(),
-    ),
-    GoRoute(
-      path: '/profile',
-      builder: (context, state) => MainWrapper(),
     ),
   ],
 );
