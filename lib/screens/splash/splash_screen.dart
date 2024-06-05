@@ -27,8 +27,8 @@ class _SplashScreenState extends State<SplashScreen> {
             Text(
               'نسخه ۱.۰.۰',
               style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w300,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],
