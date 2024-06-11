@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:go_router/go_router.dart';
 
 class ProfileScreen extends StatefulWidget {
   @override
@@ -9,7 +10,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  String? username;
+  Map<String, dynamic>? userProfile;
 
   @override
   void initState() {
@@ -19,20 +20,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadUserProfile() async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('jwtToken');
+    final accessToken = prefs.getString('access_token');
 
-    if (token != null) {
+    if (accessToken != null) {
       final response = await http.get(
-        Uri.parse('http://217.60.251.12:8181/api/v4/user/profile'),
+        Uri.parse('https://api.nexhouse.ir/api/v1/filefinder/profile'),
         headers: {
-          'Authorization': 'Bearer $token',
+          'Authorization': 'Bearer $accessToken',
         },
       );
 
       if (response.statusCode == 200) {
-        final profile = jsonDecode(response.body);
         setState(() {
-          username = profile['username'];
+          userProfile = jsonDecode(response.body);
         });
       } else {
         // Handle profile fetch error
@@ -41,14 +41,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('access_token');
+    context.go('/login');
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (userProfile == null) {
+      return Center(child: CircularProgressIndicator());
+    }
     return Scaffold(
-      appBar: AppBar(title: Text('پروفایل من')),
-      body: Center(
-        child: username != null
-            ? Text('Username: $username')
-            : CircularProgressIndicator(),
+      appBar: AppBar(
+        title: Text('پروفایل من'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.logout),
+            onPressed: _logout,
+          ),
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Name: ${userProfile!['firstName']} ${userProfile!['lastName']}'),
+            Text('Mobile: ${userProfile!['mobile']}'),
+            Text('Level: ${userProfile!['level']}'),
+            Text('Score: ${userProfile!['score']}'),
+          ],
+        ),
       ),
     );
   }

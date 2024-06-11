@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:go_router/go_router.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -9,33 +9,33 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _usernameController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  String? _errorMessage;
+  final _mobileController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  bool _isMobileValid = true;
 
-  Future<void> _login() async {
-    final response = await http.post(
-      Uri.parse('http://217.60.251.12:8181/api/v4/user/signin'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'type':'phone',
-        'username': _usernameController.text, //092345678912
-        'password': _passwordController.text, //123qwe!@#QWE
-      }),
-    );
+  Future<void> _sendOtp() async {
+    if (_formKey.currentState?.validate() ?? false) {
+      final response = await http.post(
+        Uri.parse('https://api.nexhouse.ir/api/v1/auth/file-finder/login-otp'),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode(<String, String>{
+          'mobile': _mobileController.text,
+        }),
+      );
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('jwtToken', data['token']);
-
-      // Navigate to the home screen
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
+      if (response.statusCode == 201) {
+        context.go('/verify', extra: _mobileController.text);
+      } else {
+        // Handle error
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to send OTP. Please try again.')),
+        );
       }
     } else {
       setState(() {
-        _errorMessage = 'Login failed. Please check your credentials.';
+        _isMobileValid = false;
       });
     }
   }
@@ -43,51 +43,37 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('نکیسا')),
+      appBar: AppBar(
+        title: Text('Login'),
+      ),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _usernameController,
-              decoration: InputDecoration(
-                labelText: 'نام کاربری',
-                filled: true,
-                fillColor: Colors.grey[200],
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8.0),
-                  borderSide: BorderSide.none,
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              TextFormField(
+                controller: _mobileController,
+                decoration: InputDecoration(
+                  labelText: 'Mobile Number',
+                  hintText: 'Enter your 11-digit mobile number',
+                  errorText: _isMobileValid ? null : 'Mobile number must be 11 digits',
                 ),
+                keyboardType: TextInputType.phone,
+                validator: (value) {
+                  if (value == null || value.isEmpty || value.length != 11) {
+                    return 'Mobile number must be 11 digits';
+                  }
+                  return null;
+                },
               ),
-            ),
-            SizedBox(height: 20),
-            TextField(
-              controller: _passwordController,
-              decoration: InputDecoration(
-                labelText: 'رمز عبور',
-                filled: true,
-                fillColor: Colors.grey[200],
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8.0),
-                  borderSide: BorderSide.none,
-                ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _sendOtp,
+                child: Text('Send OTP'),
               ),
-              obscureText: true,
-            ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _login,
-              child: Text('ورود به برنامه'),
-            ),
-            if (_errorMessage != null)
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text(
-                  _errorMessage!,
-                  style: TextStyle(color: Colors.red),
-                ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );

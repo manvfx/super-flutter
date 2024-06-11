@@ -7,7 +7,9 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class MainWrapper extends StatefulWidget {
-  const MainWrapper({super.key});
+  final String accessToken;
+
+  const MainWrapper({super.key, required this.accessToken});
 
   @override
   State<MainWrapper> createState() => _MainWrapperState();
@@ -15,41 +17,41 @@ class MainWrapper extends StatefulWidget {
 
 class _MainWrapperState extends State<MainWrapper> {
   int _bottomIndex = 0;
-  List<Widget> screensList = [
-    HomeScreen(),
-    SearchScreen(),
-    ProfileScreen()
-  ];
+
+  late List<Widget> screensList;
 
   String? username;
 
   @override
   void initState() {
     super.initState();
+    screensList = [
+      HomeScreen(accessToken: widget.accessToken),
+      SearchScreen(),
+      ProfileScreen(),
+    ];
     _loadUserProfile();
   }
 
   Future<void> _loadUserProfile() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('jwtToken');
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final accessToken = prefs.getString('access_token') ?? widget.accessToken;
 
-    if (token != null) {
-      final response = await http.get(
-        Uri.parse('http://localhost:8080/api/v3/user/profile'),
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
-      );
+    final response = await http.get(
+      Uri.parse('https://api.nexhouse.ir/api/v1/filefinder/profile'),
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+      },
+    );
 
-      if (response.statusCode == 200) {
-        final profile = jsonDecode(response.body);
-        setState(() {
-          username = profile['username'];
-        });
-      } else {
-        // Handle profile fetch error
-        print('Failed to load profile');
-      }
+    if (response.statusCode == 200) {
+      final profile = jsonDecode(response.body);
+      setState(() {
+        username = profile['username'];
+      });
+    } else {
+      // Handle profile fetch error
+      print('Failed to load profile');
     }
   }
 
